@@ -98,6 +98,16 @@ jobs:
             -password="$DB_PASS" \
             repair
 
+      - name: Flyway baseline
+        run: |
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user="$DB_USER" \
+            -password="$DB_PASS" \
+            -baselineOnMigrate=true \
+            -baselineVersion=1 \
+            baseline
+
       - name: Run incremental migrations
         run: |
           flyway \

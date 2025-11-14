@@ -32,7 +32,7 @@ jobs:
       DB_PASS: "sub_pass"
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install MySQL client
@@ -42,50 +42,36 @@ jobs:
         run: |
           for i in {1..10}; do
             if mysqladmin ping -h"$MYSQL_HOST" -P"$MYSQL_PORT" -p"$MYSQL_ROOT_PASSWORD" --silent; then
-              echo "MySQL ready"
+              echo "MySQL is ready"
               break
             fi
+            echo "Waiting for MySQL..."
             sleep 5
           done
 
       - name: Create DB user
         run: |
-          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
-                GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
-                FLUSH PRIVILEGES;"
+          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" <<EOF
+          CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+          GRANT ALL PRIVILEGES ON *.* TO '$DB_USER'@'%' WITH GRANT OPTION;
+          FLUSH PRIVILEGES;
+          EOF
 
       - name: Reset database completely
         run: |
-          mysql --protocol=TCP -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "DROP DATABASE IF EXISTS $DB_NAME; CREATE DATABASE $DB_NAME;"
+          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" <<EOF
+          DROP DATABASE IF EXISTS $DB_NAME;
+          CREATE DATABASE $DB_NAME;
+          EOF
 
-      - name: Reapply DB user permissions after reset
-        run: |
-          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "GRANT ALL PRIVILEGES ON subscriptions.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;"
-
-      - name: Install Flyway
+      - name: Install Flyway CLI
         run: |
           curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/10.0.0/flyway-commandline-10.0.0-linux-x64.tar.gz -o flyway.tar.gz
           tar -xzf flyway.tar.gz
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
 
-      - name: Reset Flyway schema history table
-        run: |
-          mysql --protocol=TCP -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "DROP TABLE IF EXISTS $DB_NAME.flyway_schema_history;"
-
-      - name: Flyway repair
-        run: |
-          flyway \
-            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user="$DB_USER" \
-            -password="$DB_PASS" \
-            repair
-
-      - name: Run initial migrations
+      - name: Run initial Flyway migrations
         run: |
           flyway \
             -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
@@ -94,23 +80,7 @@ jobs:
             -locations="filesystem:${{ github.workspace }}/flyway/migrations_initial" \
             migrate
 
-      - name: Flyway repair again
-        run: |
-          flyway \
-            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user="$DB_USER" \
-            -password="$DB_PASS" \
-            repair
-
-      - name: Flyway baseline
-        run: |
-          flyway \
-            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user="$DB_USER" \
-            -password="$DB_PASS" \
-            baseline
-
-      - name: Run incremental migrations
+      - name: Run incremental Flyway migrations
         run: |
           flyway \
             -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
@@ -119,7 +89,7 @@ jobs:
             -locations="filesystem:${{ github.workspace }}/flyway/migrations_incremental" \
             migrate
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -132,5 +102,5 @@ jobs:
       - name: Run CRUD tests
         run: pytest -v
 
-      - name: Done
-        run: echo "Deployment done for commit $GITHUB_SHA"
+      - name: Show deployment message
+        run: echo "Deployment done for commit... $GITHUB_SHA"

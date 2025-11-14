@@ -40,7 +40,7 @@ jobs:
 
       - name: Wait for MySQL to start
         run: |
-          for i in {1..10}; do
+          for i in {1..15}; do
             if mysqladmin ping -h"$MYSQL_HOST" -P"$MYSQL_PORT" -p"$MYSQL_ROOT_PASSWORD" --silent; then
               echo "MySQL is ready"
               break
@@ -62,14 +62,6 @@ jobs:
           tar -xzf flyway.tar.gz
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
-
-      - name: Clean Flyway schema
-        run: |
-          flyway -cleanDisabled=false \
-            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user="$DB_USER" \
-            -password="$DB_PASS" \
-            clean
 
       - name: Run initial Flyway migrations
         run: |

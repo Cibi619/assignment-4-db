@@ -71,22 +71,13 @@ jobs:
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
 
-      - name: Run initial Flyway migrations
+      - name: Run Initial and Incremental Flyway migrations
         run: |
           flyway \
             -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
             -user="$DB_USER" \
             -password="$DB_PASS" \
-            -locations=filesystem:./flyway/migrations_initial \
-            migrate
-
-      - name: Run incremental Flyway migrations
-        run: |
-          flyway \
-            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user="$DB_USER" \
-            -password="$DB_PASS" \
-            -locations=filesystem:./flyway/migrations_incremental \
+            -locations=filesystem:flyway/migrations_initial,filesystem:flyway/migrations_incremental \
             migrate
 
       - name: Set up Python

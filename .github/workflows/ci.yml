@@ -80,6 +80,14 @@ jobs:
             -locations="filesystem:${{ github.workspace }}/flyway/migrations_initial" \
             migrate
 
+      - name: Flyway repair
+        run: |
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user="$DB_USER" \
+            -password="$DB_PASS" \
+            repair
+
       - name: Run incremental Flyway migrations
         run: |
           flyway \

@@ -55,6 +55,12 @@ jobs:
                 GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
                 FLUSH PRIVILEGES;"
 
+      - name: Reset database completely
+        run: |
+          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+            -e "DROP DATABASE IF EXISTS subscriptions;
+                CREATE DATABASE subscriptions;"
+
       - name: Install Flyway
         run: |
           curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/10.0.0/flyway-commandline-10.0.0-linux-x64.tar.gz -o flyway.tar.gz

@@ -72,19 +72,23 @@ jobs:
 
       - name: Run initial Flyway migrations
         run: |
-          flyway -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
             -user="$DB_USER" \
             -password="$DB_PASS" \
+            -schemas="$DB_NAME" \
             -locations="filesystem:flyway/migrations_initial" migrate
 
       - name: Run incremental Flyway migrations
         run: |
-          flyway -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
             -user="$DB_USER" \
             -password="$DB_PASS" \
+            -schemas="$DB_NAME" \
             -locations="filesystem:flyway/migrations_incremental" migrate
 
-      - name: Set up Python
+            - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"

@@ -63,13 +63,6 @@ jobs:
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
 
-      - name: Clean Flyway schema
-        run: |
-          flyway -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user=$DB_USER \
-            -password=$DB_PASS \
-            clean
-
       - name: Run initial Flyway migrations
         run: |
           flyway \

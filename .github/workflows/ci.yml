@@ -57,9 +57,8 @@ jobs:
 
       - name: Reset database completely
         run: |
-          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "DROP DATABASE IF EXISTS subscriptions;
-                CREATE DATABASE subscriptions;"
+          mysql --protocol=TCP -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+            -e "DROP DATABASE IF EXISTS $DB_NAME; CREATE DATABASE $DB_NAME;"
 
       - name: Reapply DB user permissions after reset
         run: |
@@ -73,10 +72,10 @@ jobs:
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
 
-      - name: Reset Flyway schema history
+      - name: Reset Flyway schema history table
         run: |
-          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
-            -e "DROP TABLE IF EXISTS subscriptions.flyway_schema_history;"
+          mysql --protocol=TCP -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+            -e "DROP TABLE IF EXISTS $DB_NAME.flyway_schema_history;"
 
       - name: Flyway repair
         run: |
@@ -102,6 +101,14 @@ jobs:
             -user="$DB_USER" \
             -password="$DB_PASS" \
             repair
+
+      - name: Flyway baseline
+        run: |
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user="$DB_USER" \
+            -password="$DB_PASS" \
+            baseline
 
       - name: Run incremental migrations
         run: |

@@ -1,0 +1,98 @@
+name: Assignment 4 - CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: subscriptions
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -prootpass --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      MYSQL_HOST: "127.0.0.1"
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: "rootpass"
+      DB_NAME: "subscriptions"
+      DB_USER: "sub_user"
+      DB_PASS: "sub_pass"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Wait for MySQL to start
+        run: |
+          for i in {1..10}; do
+            if mysqladmin ping -h"$MYSQL_HOST" -P"$MYSQL_PORT" -p"$MYSQL_ROOT_PASSWORD" --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
+
+      - name: Create DB user
+        run: |
+          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+            -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+                GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
+                FLUSH PRIVILEGES;"
+
+      - name: Install Flyway CLI
+        run: |
+          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/10.0.0/flyway-commandline-10.0.0-linux-x64.tar.gz -o flyway.tar.gz
+          tar -xzf flyway.tar.gz
+          sudo mv flyway-10.0.0 /opt/flyway
+          sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
+
+      - name: Run initial Flyway migrations
+        run: |
+          flyway \
+            -url=jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false \
+            -user=$DB_USER \
+            -password=$DB_PASS \
+            -locations=filesystem:flyway/migrations_initial \
+            migrate
+
+      - name: Run incremental Flyway migrations
+        run: |
+          flyway \
+            -url=jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false \
+            -user=$DB_USER \
+            -password=$DB_PASS \
+            -locations=filesystem:flyway/migrations_incremental \
+            migrate
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run CRUD tests
+        run: pytest -v
+
+      - name: Show deployment message
+        run: echo "Deployment done for commit... $GITHUB_SHA"

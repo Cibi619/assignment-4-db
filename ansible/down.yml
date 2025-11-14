@@ -1,0 +1,10 @@
+- name: Assignment 4 - Tear down MySQL environment
+  hosts: localhost
+  tasks:
+    - name: Stop & remove MySQL container
+      ansible.builtin.shell: |
+        docker rm -f a4-mysql 2>/dev/null || true
+
+    - name: Remove dangling volumes
+      ansible.builtin.shell: |
+        docker volume prune -f

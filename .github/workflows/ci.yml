@@ -68,6 +68,14 @@ jobs:
           mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
             -e "DROP TABLE IF EXISTS $DB_NAME.flyway_schema_history;"
 
+      - name: Flyway repair
+        run: |
+          flyway \
+            -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user="$DB_USER" \
+            -password="$DB_PASS" \
+            repair
+
       - name: Run initial Flyway migrations
         run: |
           flyway \
@@ -77,7 +85,7 @@ jobs:
             -locations="filesystem:${{ github.workspace }}/flyway/migrations_initial" \
             migrate
 
-      - name: Flyway repair
+      - name: Flyway repair again
         run: |
           flyway \
             -url="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$DB_NAME?allowPublicKeyRetrieval=true&useSSL=false" \

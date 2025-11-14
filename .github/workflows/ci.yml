@@ -63,6 +63,11 @@ jobs:
           sudo mv flyway-10.0.0 /opt/flyway
           sudo ln -s /opt/flyway/flyway /usr/local/bin/flyway
 
+      - name: Reset Flyway schema history
+        run: |
+          mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -uroot -p"$MYSQL_ROOT_PASSWORD" \
+            -e "DROP TABLE IF EXISTS $DB_NAME.flyway_schema_history;"
+
       - name: Run initial Flyway migrations
         run: |
           flyway \
